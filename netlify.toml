@@ -1,0 +1,14 @@
+[build]
+  publish = "public"
+
+# เปิดหน้าแรก → เด้งเข้า tracker
+[[redirects]]
+  from = "/"
+  to = "/moonlab"
+  status = 302
+
+# /moonlab → เสิร์ฟไฟล์ moonlab.html (rewrite ไม่เปลี่ยน URL)
+[[redirects]]
+  from = "/moonlab"
+  to = "/moonlab.html"
+  status = 200

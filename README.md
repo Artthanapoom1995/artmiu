@@ -1,24 +1,26 @@
 # Artmiu — Moonlab. Live Tracker
 
 ปฏิทินติดตามการไลฟ์ขายเครื่องประดับ 31 วัน สำหรับแบรนด์ **Moonlab.** (@moonlab.jewelry)
-ใช้ร่วมกัน 2 เครื่อง — ข้อมูลซิงก์ผ่านฐานข้อมูลกลาง
+ใช้ร่วมกัน 2 เครื่อง — ข้อมูลซิงก์ผ่านที่เก็บข้อมูลกลาง
 
-## รันในเครื่อง
+## Deploy บน Netlify (แนะนำ)
+
+1. https://app.netlify.com → **Add new site → Import an existing project** → GitHub → เลือก repo นี้
+2. ค่า build ทั้งหมดอ่านจาก `netlify.toml` อัตโนมัติ → กด **Deploy**
+3. เปลี่ยนชื่อ site เป็น `artmiu` (Site configuration → Change site name) → ได้ https://artmiu.netlify.app
+
+- หน้าเว็บ: `public/moonlab.html` (static)
+- API: `netlify/functions/moonlab.mjs` → `GET/PUT /api/moonlab`
+- ที่เก็บข้อมูล: **Netlify Blobs** (มากับ Netlify ฟรี ไม่ต้องมี DB ภายนอก)
+- ไม่มีปัญหาเซิร์ฟเวอร์หลับ — static + serverless ตอบทันทีตลอด
+
+## รันในเครื่อง (ทางเลือก)
 
 ```
 npm install
 npm start
 ```
 
-เปิด http://localhost:3000 (ข้อมูลเก็บเป็นไฟล์ใน `data/`)
-
-## Deploy บน Render
-
-1. สร้าง Postgres ฟรีที่ https://neon.tech (Sign in ด้วย GitHub) → copy connection string
-2. Render → **New + → Web Service** → เลือก repo นี้
-   - Build: `npm install` / Start: `node server.js`
-   - Environment Variable: `DATABASE_URL` = connection string จาก Neon
-3. เปิด `https://<ชื่อ-service>.onrender.com` → เด้งเข้า `/moonlab` อัตโนมัติ
-
-หมายเหตุ: ถ้าไม่ตั้ง `DATABASE_URL` แอปยังรันได้ แต่ข้อมูลบน Render จะหายเมื่อเซิร์ฟเวอร์ restart
-(ดิสก์ของ free tier ไม่ถาวร) — ต้องตั้ง `DATABASE_URL` เสมอสำหรับใช้งานจริง
+เปิด http://localhost:3000 — ใช้ `server.js` (Express) ข้อมูลเก็บเป็นไฟล์ใน `data/`
+หรือถ้าอยาก deploy แบบเซิร์ฟเวอร์เต็มตัว (เช่น Render) ก็ใช้ `server.js` ได้เช่นกัน
+โดยตั้ง `DATABASE_URL` เป็น Postgres (เช่น Neon)
