@@ -409,7 +409,7 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
     <button class="iconbtn" id="resetBtn" style="color:var(--crit)">↺ ล้างเดือนนี้</button>
     <div class="note" style="width:100%">
       <div class="monthdots" id="monthDots"></div>
-      <div style="margin-top:10px">ข้อมูลซิงก์อัตโนมัติทั้งสองเครื่อง · แต่ละเดือนเก็บแยกกัน กดลูกศร ◀ ▶ เพื่อดูเดือนอื่น</div>
+      <div style="margin-top:10px" id="footNote">ข้อมูลซิงก์อัตโนมัติทั้งสองเครื่อง · แต่ละเดือนเก็บแยกกัน กดลูกศร ◀ ▶ เพื่อดูเดือนอื่น</div>
     </div>
   </div>
 
@@ -532,39 +532,80 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
     return Object.keys(m.days).length>0;
   }
 
-  // ---------- server sync (ใช้ร่วมกัน 2 เครื่อง) ----------
-  var pushTimer=null;
+  // ---------- sync (ใช้ร่วมกัน 2 เครื่อง) ----------
+  // รองรับ 2 ที่: บน Artifact ใช้ claude db (realtime), บนเว็บของเราเองใช้ /api/moonlab
+  var pushTimer=null, remoteMode="pending", dbDoc=null, pendingPush=false;
   function setSyncUI(st){
     var el=document.getElementById("syncPill"); if(!el)return;
     if(st==="saving"){el.textContent="● กำลังบันทึก…";el.style.color="var(--gold)";}
     else if(st==="ok"){el.textContent="✓ ซิงก์แล้ว";el.style.color="var(--good)";}
+    else if(st==="local"){el.textContent="◐ เก็บในเครื่องนี้";el.style.color="var(--muted)";}
     else{el.textContent="⚠ ออฟไลน์ (เก็บในเครื่องไว้ก่อน)";el.style.color="var(--crit)";}
   }
   function save(){
     state.updatedAt=Date.now();
     localStorage.setItem(KEY,JSON.stringify(state));
     clearTimeout(pushTimer);
-    pushTimer=setTimeout(pushServer,600);
+    pushTimer=setTimeout(pushRemote,600);
   }
-  function pushServer(){
+  function applyRemote(s){
+    if(!s||!(s.months||s.days))return false;
+    if((+s.updatedAt||0)<=(+state.updatedAt||0))return false;
+    state=normalize(s);
+    monthObj(viewMonth); // คงเดือนที่กำลังดูไว้ ไม่กระโดดตามอีกเครื่อง
+    localStorage.setItem(KEY,JSON.stringify(state));
+    render();
+    return true;
+  }
+  function pushRemote(){
+    if(remoteMode==="pending"){pendingPush=true;return;}      // ยังต่อไม่เสร็จ เดี๋ยวส่งให้
+    if(remoteMode==="local"){setSyncUI("local");return;}
     setSyncUI("saving");
+    if(remoteMode==="db"&&dbDoc){
+      dbDoc.set(JSON.parse(JSON.stringify(state)))
+        .then(function(){setSyncUI("ok");})
+        .catch(function(){setSyncUI("err");});
+      return;
+    }
     fetch("/api/moonlab",{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(state)})
       .then(function(r){if(!r.ok)throw 0;setSyncUI("ok");})
       .catch(function(){setSyncUI("err");});
   }
   function pullServer(first){
     fetch("/api/moonlab",{cache:"no-store"}).then(function(r){return r.json();}).then(function(s){
-      if(s&&(s.months||s.days)&&(+s.updatedAt||0)>(+state.updatedAt||0)){
-        state=normalize(s);
-        monthObj(viewMonth); // คงเดือนที่กำลังดูไว้ ไม่กระโดดตามอีกเครื่อง
-        localStorage.setItem(KEY,JSON.stringify(state));
-        render();
-      }else if(first&&(!s||!(s.months||s.days))){
-        pushServer(); // ยังไม่มีข้อมูลบนเซิร์ฟเวอร์ — ส่งของเครื่องนี้ขึ้นไปตั้งต้น
+      if(!applyRemote(s)&&first&&(!s||!(s.months||s.days))){
+        pushRemote(); // ยังไม่มีข้อมูลบนเซิร์ฟเวอร์ — ส่งของเครื่องนี้ขึ้นไปตั้งต้น
         return;
       }
       setSyncUI("ok");
     }).catch(function(){setSyncUI("err");});
+  }
+  function startHttpSync(){
+    remoteMode="http";
+    pullServer(true);
+    setInterval(function(){ if(!document.querySelector(".overlay.on")) pullServer(false); },15000);
+  }
+  function initSync(){
+    var done=false;
+    function fallback(){ if(done)return; done=true; startHttpSync(); if(pendingPush){pendingPush=false;pushRemote();} }
+    if(!(window.claude&&typeof window.claude.use==="function"))return fallback();
+    window.claude.use("db").then(function(db){
+      if(done)return;
+      if(!db)return fallback();
+      done=true; remoteMode="db"; dbDoc=db.doc("moonlab/state");
+      // บน Artifact ดาวน์โหลดไฟล์ไม่ได้ และซิงก์อัตโนมัติอยู่แล้ว จึงไม่ต้องมีปุ่มส่งออก
+      var eb=document.getElementById("exportBtn"); if(eb)eb.hidden=true;
+      var nt=document.getElementById("footNote");
+      if(nt)nt.textContent="ข้อมูลซิงก์อัตโนมัติให้ทุกคนที่เปิดลิงก์นี้ · แต่ละเดือนเก็บแยกกัน กดลูกศร ◀ ▶ เพื่อดูเดือนอื่น";
+      dbDoc.onSnapshot(function(snap){
+        if(snap.exists)applyRemote(snap.data());
+        setSyncUI("ok");
+      },function(){setSyncUI("err");});
+      dbDoc.get().then(function(snap){
+        if(!snap.exists||pendingPush){pendingPush=false;pushRemote();}
+        else setSyncUI("ok");
+      }).catch(function(){setSyncUI("err");});
+    }).catch(fallback);
   }
 
   function baht(n){return "฿"+fmt.format(Math.round(n||0));}
@@ -885,8 +926,7 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   document.addEventListener("keydown",function(e){if(e.key==="Escape")document.querySelectorAll(".overlay.on").forEach(function(o){o.classList.remove("on");});});
 
   render();
-  pullServer(true);
-  setInterval(function(){ if(!document.querySelector(".overlay.on")) pullServer(false); }, 15000);
+  initSync();
 })();
 </script>
 </body>
