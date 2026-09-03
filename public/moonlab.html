@@ -77,6 +77,7 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
 
   *{box-sizing:border-box}
   body{margin:0}
+  [hidden]{display:none!important} /* ต้องมี เพราะ .mnav ตั้ง display:grid ทับ UA style */
   .wrap{
     font-family:var(--font-ui); color:var(--text);
     background:
@@ -134,6 +135,26 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   .hero-total{display:flex;align-items:baseline;gap:10px;margin-top:14px;flex-wrap:wrap}
   .hero-total b{font-size:clamp(28px,5vw,44px);font-family:var(--font-display);font-weight:600;color:var(--gold)}
   .hero-total i{font-style:normal;color:var(--muted);font-size:13px}
+  /* month navigator */
+  .monthnav{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap}
+  .monthnav b{font-family:var(--font-display);font-weight:600;font-size:19px;min-width:8.5em;text-align:center}
+  .mnav{
+    width:31px;height:31px;flex:none;display:grid;place-items:center;cursor:pointer;
+    background:var(--panel-2);border:1px solid var(--border);color:var(--text);
+    border-radius:9px;font-family:inherit;font-size:12px;transition:.15s;padding:0;
+  }
+  .mnav:hover{border-color:var(--gold);color:var(--gold)}
+  .mnav:focus-visible{outline:var(--ring);outline-offset:2px}
+  .mnav.jump{width:auto;padding:0 12px;font-size:12px;color:var(--gold);border-color:var(--gold)}
+  .monthdots{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap;justify-content:center}
+  .mdot{
+    font-size:11px;padding:4px 9px;border-radius:7px;cursor:pointer;font-family:inherit;
+    background:var(--panel-2);border:1px solid var(--border);color:var(--muted);transition:.15s;
+  }
+  .mdot:hover{border-color:var(--gold);color:var(--gold)}
+  .mdot.cur{background:var(--gold);color:#1a1428;border-color:var(--gold);font-weight:600}
+  .mdot.has{color:var(--gold);border-color:var(--gold-soft)}
+  @media (max-width:620px){ .monthnav{justify-content:center} }
   .goalbar{height:7px;border-radius:6px;background:var(--panel-2);margin-top:14px;overflow:hidden;border:1px solid var(--border)}
   .goalbar > i{display:block;height:100%;background:linear-gradient(90deg,var(--gold-deep),var(--gold));border-radius:6px;transition:width .5s}
 
@@ -328,8 +349,14 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
       <div class="lbl"><b id="ringPct">0%</b><small>ของเป้า</small></div>
     </div>
     <div class="hero-main">
-      <div class="eyebrow">ชาเลนจ์ 31 วัน · เครื่องประดับผู้หญิง</div>
+      <div class="eyebrow">ชาเลนจ์รายเดือน · เครื่องประดับผู้หญิง</div>
       <h1 id="heroTitle">31 วันสู่จันทร์เต็มดวง</h1>
+      <div class="monthnav">
+        <button class="mnav" id="mPrev" aria-label="เดือนก่อนหน้า">◀</button>
+        <b id="monthName">—</b>
+        <button class="mnav" id="mNext" aria-label="เดือนถัดไป">▶</button>
+        <button class="mnav jump" id="mToday" hidden>กลับเดือนนี้</button>
+      </div>
       <div class="sub" id="dateRange">—</div>
       <div class="hero-total">
         <b id="totalRev">฿0</b>
@@ -344,7 +371,7 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   <section class="sec">
     <div class="sec-h">
       <span class="eyebrow">ปฏิทิน</span>
-      <h2>31 วันของเรา</h2>
+      <h2 id="calTitle">31 วันของเรา</h2>
       <span class="hint">แตะที่วันเพื่อบันทึกผลไลฟ์ · สีเข้ม = ยอดขายสูง</span>
     </div>
     <div class="weekhead"><div>อา</div><div>จ</div><div>อ</div><div>พ</div><div>พฤ</div><div>ศ</div><div>ส</div></div>
@@ -360,7 +387,7 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   <section class="sec">
     <div class="sec-h">
       <span class="eyebrow">Achievements</span>
-      <h2>เก็บให้ครบใน 31 วัน</h2>
+      <h2 id="achTitle">เก็บให้ครบใน 31 วัน</h2>
       <span class="hint" id="achCount">0 / 0 ปลดล็อกแล้ว</span>
     </div>
     <div class="badges" id="badges"></div>
@@ -379,8 +406,11 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
     <button class="iconbtn" id="exportBtn">⬇ ส่งออกข้อมูล (แชร์ให้แฟน)</button>
     <button class="iconbtn" id="importBtn">⬆ นำเข้าข้อมูล</button>
     <input type="file" id="importFile" accept="application/json" style="display:none">
-    <button class="iconbtn" id="resetBtn" style="color:var(--crit)">↺ ล้างทั้งหมด</button>
-    <div class="note">ข้อมูลถูกบันทึกในเบราว์เซอร์เครื่องนี้เท่านั้น · อยากใช้ร่วมกันข้ามเครื่อง ให้ “ส่งออก” แล้วส่งไฟล์ให้แฟน “นำเข้า”</div>
+    <button class="iconbtn" id="resetBtn" style="color:var(--crit)">↺ ล้างเดือนนี้</button>
+    <div class="note" style="width:100%">
+      <div class="monthdots" id="monthDots"></div>
+      <div style="margin-top:10px">ข้อมูลซิงก์อัตโนมัติทั้งสองเครื่อง · แต่ละเดือนเก็บแยกกัน กดลูกศร ◀ ▶ เพื่อดูเดือนอื่น</div>
+    </div>
   </div>
 
 </div></div>
@@ -425,8 +455,8 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="sTitle">
     <div class="modal-h"><div><b id="sTitle">ตั้งค่าชาเลนจ์</b><div class="sub">ปรับให้เข้ากับร้านของเรา</div></div><button class="x" id="sClose" aria-label="ปิด">×</button></div>
     <div class="modal-b">
-      <div class="field"><label>วันเริ่มต้น (Day 1)</label><input id="sStart" type="date"></div>
-      <div class="field"><label>เป้ายอดขาย 31 วัน (฿)</label><input id="sGoal" type="number" min="0" inputmode="numeric"></div>
+      <div class="field"><label>เดือนที่ดูอยู่</label><input id="sMonth" type="month"></div>
+      <div class="field"><label>เป้ายอดขายของเดือนนี้ (฿)</label><input id="sGoal" type="number" min="0" inputmode="numeric"><p style="color:var(--faint);font-size:11.5px;margin:7px 0 0">ตั้งเป้าแยกได้ทีละเดือน · เดือนใหม่จะใช้เป้าเดือนล่าสุดเป็นค่าตั้งต้น</p></div>
       <div class="two">
         <div class="field"><label>ชื่อฉัน</label><input id="sNameA" type="text" maxlength="14" placeholder="ฉัน"></div>
         <div class="field"><label>ชื่อแฟน</label><input id="sNameB" type="text" maxlength="14" placeholder="แฟน"></div>
@@ -454,18 +484,53 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
 (function(){
   "use strict";
   var KEY="moonlab_tracker_v1";
-  var DAYS=31;
+  var DAYS=31; // จำนวนวันของเดือนที่กำลังดู (28/29/30/31) — ตั้งใหม่ทุกครั้งที่เปลี่ยนเดือน
   var fmt=new Intl.NumberFormat("th-TH");
   var TH_MONTH=["ม.ค.","ก.พ.","มี.ค.","เม.ย.","พ.ค.","มิ.ย.","ก.ค.","ส.ค.","ก.ย.","ต.ค.","พ.ย.","ธ.ค."];
+  var TH_MONTH_FULL=["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
   var TH_DOW=["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
 
   function todayISO(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+  function monthKeyOf(iso){var p=String(iso||todayISO()).split("-");return p[0]+"-"+p[1];}
   var defState={startDate:todayISO(),goal:100000,nameA:"ฉัน",nameB:"แฟน",
     handle:"moonlab.jewelry",tag:"เครื่องประดับสแตนเลสพรีเมียม · ไม่ลอก ไม่ดำ",liveTime:"21:00",
-    startFollowers:1487,following:2,likes:726,folGoal:3000,days:{}};
+    startFollowers:1487,following:2,likes:726,folGoal:3000,months:{}};
 
-  function load(){try{var s=JSON.parse(localStorage.getItem(KEY));if(s&&s.days)return Object.assign({},defState,s);}catch(e){}return JSON.parse(JSON.stringify(defState));}
+  // แต่ละเดือนเก็บแยกกัน: months["2026-07"]={goal:100000,days:{1..31}}
+  // migrate อัตโนมัติจากโครงเก่าที่เก็บ days/goal ไว้ระดับบนสุด
+  function normalize(s){
+    var st=Object.assign({},JSON.parse(JSON.stringify(defState)),s||{});
+    if(!st.months||typeof st.months!=="object")st.months={};
+    if(s&&s.days&&Object.keys(s.days).length){
+      var mk=monthKeyOf(s.startDate);
+      if(!st.months[mk])st.months[mk]={goal:+s.goal||100000,days:s.days};
+    }
+    delete st.days;
+    var cur=monthKeyOf(st.startDate);
+    if(!st.months[cur])st.months[cur]={goal:+st.goal||100000,days:{}};
+    return st;
+  }
+  function load(){try{var s=JSON.parse(localStorage.getItem(KEY));if(s&&(s.months||s.days))return normalize(s);}catch(e){}return normalize(null);}
   var state=load();
+  var viewMonth=monthKeyOf(state.startDate); // เดือนที่กำลังดูอยู่
+
+  // ---------- month helpers ----------
+  function daysInMonth(mk){var p=mk.split("-");return new Date(+p[0],+p[1],0).getDate();}
+  function monthObj(mk){
+    if(!state.months[mk])state.months[mk]={goal:+state.goal||100000,days:{}};
+    return state.months[mk];
+  }
+  function mDays(){return monthObj(viewMonth).days;}
+  function mGoal(){return +monthObj(viewMonth).goal||0;}
+  function monthLabel(mk){var p=mk.split("-");return TH_MONTH_FULL[+p[1]-1]+" "+(+p[0]+543);}
+  function shiftMonth(mk,delta){
+    var p=mk.split("-"),d=new Date(+p[0],+p[1]-1+delta,1);
+    return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");
+  }
+  function monthHasData(mk){
+    var m=state.months[mk]; if(!m||!m.days)return false;
+    return Object.keys(m.days).length>0;
+  }
 
   // ---------- server sync (ใช้ร่วมกัน 2 เครื่อง) ----------
   var pushTimer=null;
@@ -489,11 +554,12 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   }
   function pullServer(first){
     fetch("/api/moonlab",{cache:"no-store"}).then(function(r){return r.json();}).then(function(s){
-      if(s&&s.days&&(+s.updatedAt||0)>(+state.updatedAt||0)){
-        state=Object.assign({},defState,s);
+      if(s&&(s.months||s.days)&&(+s.updatedAt||0)>(+state.updatedAt||0)){
+        state=normalize(s);
+        monthObj(viewMonth); // คงเดือนที่กำลังดูไว้ ไม่กระโดดตามอีกเครื่อง
         localStorage.setItem(KEY,JSON.stringify(state));
         render();
-      }else if(first&&(!s||!s.days)){
+      }else if(first&&(!s||!(s.months||s.days))){
         pushServer(); // ยังไม่มีข้อมูลบนเซิร์ฟเวอร์ — ส่งของเครื่องนี้ขึ้นไปตั้งต้น
         return;
       }
@@ -502,18 +568,18 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   }
 
   function baht(n){return "฿"+fmt.format(Math.round(n||0));}
-  function dateForDay(i){ // i:1..31
-    var p=state.startDate.split("-");
-    var d=new Date(+p[0],+p[1]-1,+p[2]);
-    d.setDate(d.getDate()+(i-1));
-    return d;
+  function dateForDay(i){ // วันที่ i ของเดือนที่กำลังดู
+    var p=viewMonth.split("-");
+    return new Date(+p[0],+p[1]-1,i);
   }
 
-  // ---------- compute ----------
+  // ---------- compute (เฉพาะเดือนที่กำลังดู) ----------
   function metrics(){
-    var m={rev:0,ord:0,fol:0,liveDays:0,hours:0,peakMax:0,bothDays:0,maxRev:0,streak:0,curStreak:0};
+    DAYS=daysInMonth(viewMonth);
+    var m={rev:0,ord:0,fol:0,liveDays:0,hours:0,peakMax:0,bothDays:0,maxRev:0,streak:0,curStreak:0,total:DAYS};
+    var days=mDays();
     for(var i=1;i<=DAYS;i++){
-      var d=state.days[i]; if(!d)continue;
+      var d=days[i]; if(!d)continue;
       if(d.live){
         m.liveDays++; m.rev+=+d.rev||0; m.ord+=+d.ord||0; m.fol+=+d.fol||0; m.hours+=+d.hrs||0;
         m.peakMax=Math.max(m.peakMax,+d.peak||0);
@@ -523,9 +589,9 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
     }
     // streaks
     var run=0;
-    for(var j=1;j<=DAYS;j++){var dd=state.days[j];if(dd&&dd.live){run++;m.streak=Math.max(m.streak,run);}else{run=0;}}
+    for(var j=1;j<=DAYS;j++){var dd=days[j];if(dd&&dd.live){run++;m.streak=Math.max(m.streak,run);}else{run=0;}}
     // current streak up to last logged live day
-    run=0;for(var k=1;k<=DAYS;k++){var e=state.days[k];if(e&&e.live)run++;else if(e&&!e.live)run=0;}m.curStreak=run;
+    run=0;for(var k=1;k<=DAYS;k++){var e=days[k];if(e&&e.live)run++;else if(e&&!e.live)run=0;}m.curStreak=run;
     return m;
   }
 
@@ -534,23 +600,26 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   function render(){
     var M=metrics();
     renderChannel(M);
+    renderMonthNav();
     // hero
-    var pct=state.goal>0?Math.min(1,M.rev/state.goal):0;
+    var goal=mGoal();
+    var pct=goal>0?Math.min(1,M.rev/goal):0;
     document.getElementById("ringArc").setAttribute("stroke-dasharray",CIRC.toFixed(2));
     document.getElementById("ringArc").setAttribute("stroke-dashoffset",(CIRC*(1-pct)).toFixed(2));
     document.getElementById("ringPct").textContent=Math.round(pct*100)+"%";
     document.getElementById("totalRev").textContent=baht(M.rev);
-    document.getElementById("goalText").textContent="จากเป้า "+baht(state.goal);
+    document.getElementById("goalText").textContent="จากเป้า "+baht(goal);
     document.getElementById("goalFill").style.width=(pct*100)+"%";
-    var d1=dateForDay(1),d31=dateForDay(31);
+    document.getElementById("heroTitle").textContent=DAYS+" วันสู่จันทร์เต็มดวง";
+    var d1=dateForDay(1),dN=dateForDay(DAYS);
     document.getElementById("dateRange").textContent=
-      d1.getDate()+" "+TH_MONTH[d1.getMonth()]+" – "+d31.getDate()+" "+TH_MONTH[d31.getMonth()]+" "+(d31.getFullYear()+543);
+      d1.getDate()+" – "+dN.getDate()+" "+TH_MONTH[dN.getMonth()]+" "+(dN.getFullYear()+543)+" · "+DAYS+" วัน";
 
     // kpis
     var avg=M.liveDays?M.rev/M.liveDays:0;
     var kpis=[
       {k:"ออเดอร์รวม",v:fmt.format(M.ord),dot:"var(--gold)"},
-      {k:"วันที่ไลฟ์",v:M.liveDays+"<small>/31</small>",dot:"var(--good)"},
+      {k:"วันที่ไลฟ์",v:M.liveDays+"<small>/"+DAYS+"</small>",dot:"var(--good)"},
       {k:"สตรีคติดต่อ",v:M.curStreak+"<small> วัน</small>",dot:"var(--rose)"},
       {k:"ชั่วโมงบนจอ",v:(Math.round(M.hours*10)/10)+"<small> ชม.</small>",dot:"var(--silver)"},
       {k:"ผู้ติดตามใหม่",v:"+"+fmt.format(M.fol),dot:"var(--gold)"},
@@ -565,8 +634,9 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
     var html="";
     for(var e=0;e<lead;e++)html+='<div class="cell empty"></div>';
     var tISO=todayISO();
+    var vDays=mDays();
     for(var i=1;i<=DAYS;i++){
-      var dt=dateForDay(i), d=state.days[i];
+      var dt=dateForDay(i), d=vDays[i];
       var iso=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
       var isToday=iso===tISO;
       var bg="var(--cell)";
@@ -599,6 +669,34 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
     renderUs(M);
   }
 
+  // ---------- month navigator ----------
+  function renderMonthNav(){
+    document.getElementById("monthName").textContent=monthLabel(viewMonth);
+    document.getElementById("mToday").hidden=(viewMonth===monthKeyOf(todayISO()));
+    document.getElementById("calTitle").textContent=DAYS+" วันของเรา";
+    document.getElementById("achTitle").textContent="เก็บให้ครบใน "+DAYS+" วัน";
+    // ปุ่มลัดไปเดือนที่มีข้อมูล + เดือนปัจจุบัน
+    var keys=Object.keys(state.months).filter(function(k){return monthHasData(k)||k===viewMonth||k===monthKeyOf(todayISO());});
+    if(keys.indexOf(viewMonth)<0)keys.push(viewMonth);
+    keys.sort();
+    document.getElementById("monthDots").innerHTML=keys.map(function(k){
+      var p=k.split("-");
+      var cls="mdot"+(k===viewMonth?" cur":(monthHasData(k)?" has":""));
+      return '<button class="'+cls+'" data-mk="'+k+'">'+TH_MONTH[+p[1]-1]+" "+(String(+p[0]+543).slice(-2))+'</button>';
+    }).join("");
+    document.querySelectorAll("#monthDots .mdot").forEach(function(b){
+      b.addEventListener("click",function(){setViewMonth(b.getAttribute("data-mk"));});
+    });
+  }
+  document.getElementById("mPrev").addEventListener("click",function(){setViewMonth(shiftMonth(viewMonth,-1));});
+  document.getElementById("mNext").addEventListener("click",function(){setViewMonth(shiftMonth(viewMonth,1));});
+  document.getElementById("mToday").addEventListener("click",function(){setViewMonth(monthKeyOf(todayISO()));});
+  function setViewMonth(mk){
+    viewMonth=mk;
+    if(!state.months[mk]){ monthObj(mk); save(); } // สร้างเดือนใหม่ + บันทึกให้แฟนเห็นด้วย
+    render();
+  }
+
   // ---------- channel dashboard ----------
   function renderChannel(M){
     var curFol=(+state.startFollowers||0)+M.fol;
@@ -615,7 +713,7 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
     var ins=[
       {v:"+"+fmt.format(M.fol),k:"ผู้ติดตามใหม่ ("+(Math.round(growthPct*10)/10)+"%)"},
       {v:fmt.format(M.peakMax),k:"Peak วิวไลฟ์สูงสุด"},
-      {v:M.liveDays+"/31",k:"ไลฟ์สม่ำเสมอ"},
+      {v:M.liveDays+"/"+DAYS,k:"ไลฟ์สม่ำเสมอ"},
       {v:baht(aov),k:"มูลค่าเฉลี่ย/ออเดอร์"}
     ];
     document.getElementById("chInsights").innerHTML=ins.map(function(x){
@@ -633,9 +731,9 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
       {g:"🌒",t:"ไลฟ์ครั้งแรก",d:"เริ่มต้นคือครึ่งหนึ่งของความสำเร็จ",cur:M.liveDays,tgt:1},
       {g:"💎",t:"ออเดอร์แรก",d:"ลูกค้าคนแรกกดสั่ง",cur:M.ord,tgt:1},
       {g:"🔥",t:"7 วันไม่พัก",d:"ไลฟ์ติดกัน 7 วัน",cur:M.streak,tgt:7},
-      {g:"🌕",t:"จันทร์เต็มดวง",d:"ไลฟ์ครบทั้ง 31 วัน",cur:M.liveDays,tgt:31},
+      {g:"🌕",t:"จันทร์เต็มดวง",d:"ไลฟ์ครบทั้ง "+DAYS+" วัน",cur:M.liveDays,tgt:DAYS},
       {g:"💰",t:"ทะลุ 50,000",d:"ยอดขายรวมแตะ 5 หมื่น",cur:M.rev,tgt:50000},
-      {g:"👑",t:"แตะเป้าที่ตั้งไว้",d:"ยอดถึงเป้า 31 วัน",cur:M.rev,tgt:state.goal},
+      {g:"👑",t:"แตะเป้าที่ตั้งไว้",d:"ยอดถึงเป้าของเดือนนี้",cur:M.rev,tgt:mGoal()},
       {g:"📦",t:"100 ออเดอร์",d:"แพ็คของกันมือเป็นระวิง",cur:M.ord,tgt:100},
       {g:"👥",t:"+500 ผู้ติดตาม",d:"ครอบครัวมูนแลปโตขึ้น",cur:M.fol,tgt:500},
       {g:"⏳",t:"50 ชั่วโมงบนจอ",d:"ทุ่มเทเต็มที่",cur:M.hours,tgt:50},
@@ -660,7 +758,7 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   // ---------- team US ----------
   function usMessage(M){
     if(M.liveDays===0) return 'พร้อมเมื่อไหร่ก็เริ่มกันเลยนะ <span class="heart">💕</span>';
-    if(M.liveDays>=31) return 'จันทร์เต็มดวงแล้ว! เราสองคนทำสำเร็จด้วยกัน <span class="heart">🌕💕</span>';
+    if(M.liveDays>=DAYS) return 'จันทร์เต็มดวงแล้ว! เราสองคนทำสำเร็จด้วยกัน <span class="heart">🌕💕</span>';
     if(M.curStreak>=7) return 'สตรีค '+M.curStreak+' วันติด! จับมือกันแน่นๆ แล้วไปต่อ <span class="heart">🔥💕</span>';
     if(M.curStreak>=3) return 'ไลฟ์ด้วยกันมา '+M.curStreak+' วันติดแล้ว เก่งมากทั้งคู่ <span class="heart">💕</span>';
     return 'เราไลฟ์ด้วยกันมาแล้ว '+M.liveDays+' วัน สู้ไปด้วยกันนะ <span class="heart">💕</span>';
@@ -671,7 +769,7 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
       '<div class="us-motto">ทีมเดียวกัน ไลฟ์คู่กันตลอด · Moonlab.</div>'+
       '<div class="us-stats">'+
         '<div class="us-stat"><b class="tnum">'+baht(M.rev)+'</b><small>ยอดขายของเรา</small></div>'+
-        '<div class="us-stat"><b class="tnum">'+M.liveDays+'/31</b><small>วันที่ไลฟ์คู่กัน</small></div>'+
+        '<div class="us-stat"><b class="tnum">'+M.liveDays+'/'+DAYS+'</b><small>วันที่ไลฟ์คู่กัน</small></div>'+
         '<div class="us-stat"><b class="tnum">'+(Math.round(M.hours*10)/10)+' ชม.</b><small>เวลาบนจอด้วยกัน</small></div>'+
         '<div class="us-stat"><b class="tnum">'+fmt.format(M.ord)+'</b><small>ออเดอร์ที่ช่วยกันแพ็ค</small></div>'+
       '</div>'+
@@ -682,7 +780,7 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   // ---------- day modal ----------
   var curDay=null, curLive=1;
   function openDay(i){
-    curDay=i; var d=state.days[i]||{};
+    curDay=i; var d=mDays()[i]||{};
     var dt=dateForDay(i);
     document.getElementById("dTitle").textContent="Day "+i;
     document.getElementById("dSub").textContent="วัน"+TH_DOW[dt.getDay()]+"ที่ "+dt.getDate()+" "+TH_MONTH[dt.getMonth()]+" "+(dt.getFullYear()+543);
@@ -704,7 +802,7 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
 
   document.getElementById("dSave").addEventListener("click",function(){
     if(curLive){
-      state.days[curDay]={live:1,
+      mDays()[curDay]={live:1,
         rev:+document.getElementById("fRev").value||0,
         ord:+document.getElementById("fOrd").value||0,
         hrs:+document.getElementById("fHrs").value||0,
@@ -712,17 +810,17 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
         peak:+document.getElementById("fPeak").value||0,
         host:"both", note:document.getElementById("fNote").value.trim()};
     }else{
-      state.days[curDay]={live:0};
+      mDays()[curDay]={live:0};
     }
     save();render();hide("dayOverlay");
   });
-  document.getElementById("dClear").addEventListener("click",function(){delete state.days[curDay];save();render();hide("dayOverlay");});
+  document.getElementById("dClear").addEventListener("click",function(){delete mDays()[curDay];save();render();hide("dayOverlay");});
   document.getElementById("dClose").addEventListener("click",function(){hide("dayOverlay");});
 
   // ---------- settings ----------
   function openSettings(){
-    document.getElementById("sStart").value=state.startDate;
-    document.getElementById("sGoal").value=state.goal;
+    document.getElementById("sMonth").value=viewMonth;
+    document.getElementById("sGoal").value=mGoal();
     document.getElementById("sNameA").value=state.nameA;
     document.getElementById("sNameB").value=state.nameB;
     document.getElementById("sHandle").value=state.handle;
@@ -738,8 +836,11 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   document.getElementById("editChBtn").addEventListener("click",openSettings);
   document.getElementById("sClose").addEventListener("click",function(){hide("setOverlay");});
   document.getElementById("sSave").addEventListener("click",function(){
-    state.startDate=document.getElementById("sStart").value||todayISO();
-    state.goal=+document.getElementById("sGoal").value||0;
+    var mk=document.getElementById("sMonth").value;
+    if(/^\d{4}-\d{2}$/.test(mk))viewMonth=mk;
+    monthObj(viewMonth).goal=+document.getElementById("sGoal").value||0;
+    state.goal=monthObj(viewMonth).goal; // ใช้เป็นค่าตั้งต้นของเดือนที่สร้างใหม่
+    state.startDate=viewMonth+"-01";
     state.nameA=document.getElementById("sNameA").value.trim()||"ฉัน";
     state.nameB=document.getElementById("sNameB").value.trim()||"แฟน";
     state.handle=document.getElementById("sHandle").value.trim().replace(/^@/,"")||"moonlab.jewelry";
@@ -763,16 +864,18 @@ unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+0
   document.getElementById("exportBtn").addEventListener("click",function(){
     var blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
     var a=document.createElement("a");a.href=URL.createObjectURL(blob);
-    a.download="moonlab-tracker-"+state.startDate+".json";a.click();
+    a.download="moonlab-tracker-"+viewMonth+".json";a.click();
   });
   document.getElementById("importBtn").addEventListener("click",function(){document.getElementById("importFile").click();});
   document.getElementById("importFile").addEventListener("change",function(ev){
     var f=ev.target.files[0];if(!f)return;var r=new FileReader();
-    r.onload=function(){try{var s=JSON.parse(r.result);if(s&&s.days){state=Object.assign({},defState,s);save();render();}else{alert("ไฟล์ไม่ถูกต้อง");}}catch(e){alert("อ่านไฟล์ไม่สำเร็จ");}};
+    r.onload=function(){try{var s=JSON.parse(r.result);if(s&&(s.months||s.days)){state=normalize(s);viewMonth=monthKeyOf(state.startDate);save();render();}else{alert("ไฟล์ไม่ถูกต้อง");}}catch(e){alert("อ่านไฟล์ไม่สำเร็จ");}};
     r.readAsText(f);ev.target.value="";
   });
   document.getElementById("resetBtn").addEventListener("click",function(){
-    if(confirm("ล้างข้อมูลทั้งหมดของ 31 วันนี้? การกระทำนี้ย้อนกลับไม่ได้")){state=JSON.parse(JSON.stringify(defState));save();render();}
+    if(confirm("ล้างข้อมูลของ "+monthLabel(viewMonth)+" ทั้งเดือน? (เดือนอื่นยังอยู่ครบ) การกระทำนี้ย้อนกลับไม่ได้")){
+      state.months[viewMonth]={goal:mGoal(),days:{}};save();render();
+    }
   });
 
   // overlays

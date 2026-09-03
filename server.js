@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3100;
 
 app.use(express.json({ limit: '1mb' }));
 
@@ -42,7 +42,7 @@ app.get('/api/moonlab', async (req, res) => {
 app.put('/api/moonlab', async (req, res) => {
   try {
     const body = req.body || {};
-    if (!body.days) return res.status(400).json({ error: 'invalid state' });
+    if (!body.months && !body.days) return res.status(400).json({ error: 'invalid state' });
     await store.set('moonlab_state', JSON.stringify(body));
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }

@@ -14,7 +14,7 @@ export default async (req) => {
   if (req.method === "PUT") {
     let body = null;
     try { body = await req.json(); } catch {}
-    if (!body || !body.days) {
+    if (!body || (!body.months && !body.days)) {
       return Response.json({ error: "invalid state" }, { status: 400 });
     }
     await store.set("state", JSON.stringify(body));
